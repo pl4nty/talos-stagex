@@ -50,15 +50,18 @@ BOOTSTRAP := stage0 stage1 stage2 stage3
 # Core packages in topological (dependency) order. Each registry-* build pulls
 # its dependencies from the registry rather than building them, so the full
 # dependency closure of the packages we consume (filesystem, binutils, busybox,
-# gcc, make, musl, diffutils, go) must be built in order. Rebase per release.
-# rust is deferred: arm64 rust needs an amd64-cross bootstrap rework (mrustc
-# 0.12.0 can't compile Rust core for aarch64); it will return in a separate change.
+# gcc, make, musl, diffutils, go, rust) must be built in order. llvm-libgcc is a
+# subpackage of llvm built as its own target. Rebase per release.
+# rust and its exclusive deps (ca-certificates, curl, libatomic-stub,
+# llvm-libgcc, llvm21) are built amd64-only (see the PLATFORM pin below): mrustc
+# 0.12.0 can't bootstrap Rust on arm64, so this amd64 rustc is the seed for the
+# arm64-hosted rustc that is cross-built in siderolabs/tools.
 CORE := \
 	filesystem busybox libzstd mimalloc musl llvm make zlib perl attr \
 	linux-headers openssl pkgconf samurai cmake libucontext onetbb mold m4 autoconf \
-	automake binutils bison bsd-compat-headers bzip2 diffutils libtool libffi ncurses tcl \
-	sqlite3 python libxml2 gettext flex gawk gmp isl libatomic_ops mpfr \
-	mpc texinfo gcc go
+	automake binutils bison bsd-compat-headers bzip2 ca-certificates curl diffutils libtool libffi \
+	ncurses tcl sqlite3 python libxml2 gettext flex gawk gmp isl \
+	libatomic_ops mpfr mpc texinfo gcc go libatomic-stub llvm-libgcc llvm21 rust
 
 # Source tarballs to pre-fetch before building (fail fast on mirror issues).
 FETCH_PACKAGES := $(CORE) $(BOOTSTRAP)
@@ -92,6 +95,12 @@ core: $(CORE) ## Build the core packages in dependency order
 # Bootstrap seed stages are amd64-only; they build the cross/native toolchain
 # that later (multi-arch) stages depend on.
 stage0 stage1 stage2: PLATFORM := linux/amd64
+
+# rust bootstraps from mrustc, which only works on amd64 (mrustc 0.12.0 can't
+# compile Rust core for aarch64). Build rust and its exclusive deps amd64-only;
+# this rustc is the bootstrap seed for the arm64-hosted rustc that is cross-built
+# on amd64 in siderolabs/tools.
+ca-certificates curl libatomic-stub llvm-libgcc llvm21 rust: PLATFORM := linux/amd64
 
 # Route the i386-bootstrap cross-compiled packages to the amd64 builder (see
 # CROSS_BUILDER_NAME above). Only takes effect when CROSS_BUILDER_NAME is set.
