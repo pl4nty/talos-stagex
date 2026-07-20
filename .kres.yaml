@@ -24,21 +24,15 @@ spec:
     - name: default
       timeoutMinutes: 720
       buildxOptions:
-        enabled: true
-        crossBuilder: true
-      runnerGroup: large
-      # All build logic lives in the Makefile; the steps below only invoke its
-      # targets. The StageX version is pinned once via STAGEX_REF in the
-      # Makefile and overridden here only when the workflow is dispatched with
-      # an explicit ref.
+        enabled: false
+      runnerGroup: ubuntu-latest
       steps:
-        # stage3 and go bootstrap from an i386 base and cross-compile; their
-        # arm64 output must build on the amd64 node (native i386 bootstrap), not
-        # emulated on the arm64 node. This dedicated amd64-only builder is
-        # selected for those targets via CROSS_BUILDER_NAME in the Makefile.
-        - name: Set up amd64 cross-compile builder
+        - name: Set up QEMU
           nonMakeStep: true
-          command: docker buildx create --name stagex-amd64 --driver remote --platform linux/amd64,linux/arm64 tcp://buildkit-amd64.ci.svc.cluster.local:1234
+          command: docker run --rm --privileged tonistiigi/binfmt --install riscv64
+        - name: Set up Docker Buildx
+          nonMakeStep: true
+          command: docker buildx create --use --name stagex-amd64 --driver docker-container
         - name: Clone stagex
           command: clone
           environment:

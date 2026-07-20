@@ -24,7 +24,7 @@ FETCH_CACHE_IMAGE ?= ghcr.io/siderolabs/stagex/fetch-cache:$(STAGEX_REF)
 # Build settings, overridable from the environment / CI. Keep these free of
 # inline comments: trailing characters would leak into image refs and flags.
 REGISTRY_USERNAME ?= 127.0.0.1:5005/stagex
-PLATFORM          ?= linux/amd64,linux/arm64
+PLATFORM          ?= linux/riscv64
 PROGRESS          ?= auto
 BUILDER           ?= docker buildx
 
@@ -42,7 +42,8 @@ PATCHES := \
 	0001-fix-make-stage3-cross-compile-for-linux-arm64-again.patch \
 	0002-fix-core-llvm-rm-nsan-on-arm64.patch \
 	tag.patch \
-	ttl.sh.patch
+	ttl.sh.patch \
+	riscv64.patch
 
 # Bootstrap stages (seed the toolchain, amd64-only).
 BOOTSTRAP := stage0 stage1 stage2 stage3
@@ -59,9 +60,9 @@ BOOTSTRAP := stage0 stage1 stage2 stage3
 CORE := \
 	filesystem busybox libzstd mimalloc musl llvm make zlib perl attr \
 	linux-headers openssl pkgconf samurai cmake libucontext onetbb mold m4 autoconf \
-	automake binutils bison bsd-compat-headers bzip2 ca-certificates curl diffutils libtool libffi \
+	automake binutils bison bsd-compat-headers bzip2 diffutils libtool libffi \
 	ncurses tcl sqlite3 python libxml2 gettext flex gawk gmp isl \
-	libatomic_ops mpfr mpc texinfo gcc go libatomic-stub llvm-libgcc llvm21 rust
+	libatomic_ops mpfr mpc texinfo go
 
 # Source tarballs to pre-fetch before building (fail fast on mirror issues).
 FETCH_PACKAGES := $(CORE) $(BOOTSTRAP)
@@ -77,6 +78,7 @@ $(MAKE) -C $(STAGEX_DIR) $(1) \
 	PROGRESS="$(PROGRESS)" \
 	PLATFORM="$(PLATFORM)" \
 	REGISTRY_USERNAME="$(REGISTRY_USERNAME)" \
+	EXTRA_ARGS="$(EXTRA_ARGS)" \
 	TAG="$(STAGEX_REF)"
 endef
 
@@ -95,6 +97,7 @@ core: $(CORE) ## Build the core packages in dependency order
 # Bootstrap seed stages are amd64-only; they build the cross/native toolchain
 # that later (multi-arch) stages depend on.
 stage0 stage1 stage2: PLATFORM := linux/amd64
+stage2: EXTRA_ARGS := --build-arg TARGET_LIST=riscv64
 
 # rust bootstraps from mrustc, which only works on amd64 (mrustc 0.12.0 can't
 # compile Rust core for aarch64). Build rust and its exclusive deps amd64-only;

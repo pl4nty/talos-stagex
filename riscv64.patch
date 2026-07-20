@@ -1,0 +1,110 @@
+diff --git a/packages/bootstrap/stage2/Containerfile b/packages/bootstrap/stage2/Containerfile
+index 327b016..3e27153 100644
+--- a/packages/bootstrap/stage2/Containerfile
++++ b/packages/bootstrap/stage2/Containerfile
+@@ -237,7 +237,7 @@ COPY --chmod=755 <<-'EOF' /linux.sh
+ 	cp -r /linux-${LINUX_VERSION} /linux-build-${TARGET_ARCH}
+ 	cd /linux-build-${TARGET_ARCH}
+ 	set -eux
+-	make -j$(nproc) ARCH="$(echo ${TARGET_ARCH} | sed 's/aarch64/arm64/')" headers
++	make -j$(nproc) ARCH="$(echo ${TARGET_ARCH} | sed 's/aarch64/arm64/' | sed 's/riscv64/riscv/')" headers
+ 	find usr/include ! -name '*.h' -type f -delete
+ 	cp -Rv usr/include/* "${SYSROOT}/include/"
+ 	rm -rf "${SYSROOT}/_tmp"
+diff --git a/packages/bootstrap/stage2/package.toml b/packages/bootstrap/stage2/package.toml
+index 82df6bb..341544e 100644
+--- a/packages/bootstrap/stage2/package.toml
++++ b/packages/bootstrap/stage2/package.toml
+@@ -48,7 +48,7 @@ file = "linux-{version}.tar.xz"
+ mirrors = ["https://mirrors.kernel.org/pub/linux/kernel/v6.x/{file}"]
+ 
+ [sources.binutils]
+-version = "2.35"
+-hash = "1b11659fb49e20e18db460d44485f09442c8c56d5df165de9461eb09c8302f85"
++version = "2.45"
++hash = "c50c0e7f9cb188980e2cc97e4537626b1672441815587f1eab69d2a1bfbef5d2"
+ file = "binutils-{version}.tar.xz"
+ mirrors = ["https://ftpmirror.gnu.org/gnu/binutils/{file}", "https://mirrors.kernel.org/gnu/binutils/{file}"]
+diff --git a/packages/bootstrap/stage3/Containerfile b/packages/bootstrap/stage3/Containerfile
+index ab686e9..8e0b2d7 100644
+--- a/packages/bootstrap/stage3/Containerfile
++++ b/packages/bootstrap/stage3/Containerfile
+@@ -9,6 +9,8 @@ COPY <<-'EOF' /etc/profile
+ 		&& ARCH="x86_64"
+ 	[[ "$TARGETARCH" == "arm64" ]] \
+ 		&& ARCH="aarch64"
++	[[ "$TARGETARCH" == "riscv64" ]] \
++		&& ARCH="riscv64"
+ 	export ARCH
+ 	export MAKEFLAGS="-j$(nproc)"
+ 	export BUILD=i386-unknown-linux-musl
+@@ -82,6 +84,8 @@ RUN --network=none <<-EOF
+ 	LINUX_ARCH="$ARCH"
+ 	[[ "$TARGETARCH" == "arm64" ]] \
+ 		&& LINUX_ARCH="$TARGETARCH"
++	[[ "$TARGETARCH" == "riscv64" ]] \
++		&& LINUX_ARCH="riscv"
+ 	make ARCH="$LINUX_ARCH" headers
+ 	find usr/include -name '.*' -delete
+ 	rm usr/include/Makefile
+diff --git a/packages/core/gcc/Containerfile b/packages/core/gcc/Containerfile
+index bbf307c..232d088 100644
+--- a/packages/core/gcc/Containerfile
++++ b/packages/core/gcc/Containerfile
+@@ -31,6 +31,8 @@ RUN --network=none <<-EOF
+ 		&& ARCH="x86_64"
+ 	[[ "$TARGETARCH" == "arm64" ]] \
+ 		&& ARCH="aarch64"
++	[[ "$TARGETARCH" == "riscv64" ]] \
++		&& ARCH="riscv64"
+ 	TARGET=$ARCH-unknown-linux-musl
+ 	# Find the latest clang runtime.
+ 	CLANG_VER="$(ls -d /lib/clang/*/ | sort -V | tail -1 | xargs basename)"
+@@ -110,10 +112,19 @@ RUN --network=none <<-EOF
+ 		--with-gxx-include-dir=/usr/include/c++/15.2.0 \
+ 		--with-gxx-libcxx-include-dir=/usr/include/c++/v1 \
+     libat_cv_have_ifunc=no
++EOF
++# can't mount riscv64-linux-musl because it's renamed during build
++RUN --mount=type=cache,target=/gcc-${VERSION}/build-riscv64-linux-musl \
++	--mount=type=cache,target=/gcc-${VERSION}/host-riscv64-linux-musl \
++	--network=none <<-EOF
+ 	make -j "$(nproc)"
+ EOF
+-RUN make -j "$(nproc)" all-target-libgcc
+-RUN make DESTDIR=/rootfs install-strip install-target-libgcc
++RUN --mount=type=cache,target=/gcc-${VERSION}/build-riscv64-linux-musl \
++	--mount=type=cache,target=/gcc-${VERSION}/host-riscv64-linux-musl \
++	make -j "$(nproc)" all-target-libgcc
++RUN --mount=type=cache,target=/gcc-${VERSION}/build-riscv64-linux-musl \
++	--mount=type=cache,target=/gcc-${VERSION}/host-riscv64-linux-musl \
++	make DESTDIR=/rootfs install-strip install-target-libgcc
+ RUN [ ! -d /rootfs/usr/lib64 ] || ( mv /rootfs/usr/lib64/* /rootfs/usr/lib/ && rm -rf /rootfs/usr/lib64 )
+ 
+ FROM stagex/core-filesystem AS package
+diff --git a/packages/core/go/package.toml b/packages/core/go/package.toml
+index f7b3abf..6edcc8a 100644
+--- a/packages/core/go/package.toml
++++ b/packages/core/go/package.toml
+@@ -42,3 +42,7 @@ mirrors = ["https://go.dev/dl/go{version}.linux-amd64.tar.gz"]
+ [sources.go-linux-arm64]
+ hash = "ef758ae7c6cf9267c9c0ef080b8965f453d89ab2d25d9eb22de4405925238768"
+ mirrors = ["https://go.dev/dl/go{version}.linux-arm64.tar.gz"]
++
++[sources.go-linux-riscv64]
++hash = "2b9ba137baaa3031fd74330cb36ab54c5abe380867ca9fbab7c552f3db740555"
++mirrors = ["https://go.dev/dl/go{version}.linux-riscv64.tar.gz"]
+diff --git a/packages/core/llvm/Containerfile b/packages/core/llvm/Containerfile
+index 25090a0..a92bf96 100644
+--- a/packages/core/llvm/Containerfile
++++ b/packages/core/llvm/Containerfile
+@@ -14,6 +14,9 @@ COPY <<-'EOF' /etc/profile
+ 	[[ "$TARGETARCH" == "arm64" ]] \
+ 		&& ARCH="aarch64" \
+ 		&& LLVM_TARGET_ARCH="AArch64"
++	[[ "$TARGETARCH" == "riscv64" ]] \
++		&& ARCH="riscv64" \
++		&& LLVM_TARGET_ARCH="RISCV"
+ 	export ARCH
+ 	export MAKEFLAGS="-j$(nproc)"
+ 	export BUILD=${ARCH}-unknown-linux-musl
