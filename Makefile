@@ -12,14 +12,16 @@
 # truth for the version: CI may pass it through (possibly empty), in which case
 # we fall back to the pinned default below.
 STAGEX_REPO ?= https://codeberg.org/stagex/stagex.git
-STAGEX_REF  := $(or $(strip $(STAGEX_REF)),2026.09.0)
+STAGEX_REF  := $(or $(strip $(STAGEX_REF)),release/2026.11.1)
+# Image-tag-safe form of STAGEX_REF (branch refs such as release/x contain '/').
+STAGEX_TAG  := $(subst /,-,$(STAGEX_REF))
 STAGEX_DIR  ?= _out/stagex
 
 # Source-cache image: a flat image holding the pre-fetched `fetch/` tree, keyed
 # by the upstream ref. Pulled to seed fetch.py so static sources skip the mirror
 # round-trip. Always ghcr.io (public) so PR builds can pull it without auth — do
 # not derive from REGISTRY_USERNAME, which points at the dev registry on PRs.
-FETCH_CACHE_IMAGE ?= ghcr.io/siderolabs/stagex/fetch-cache:$(STAGEX_REF)
+FETCH_CACHE_IMAGE ?= ghcr.io/siderolabs/stagex/fetch-cache:$(STAGEX_TAG)
 
 # Build settings, overridable from the environment / CI. Keep these free of
 # inline comments: trailing characters would leak into image refs and flags.
@@ -36,13 +38,10 @@ BUILDER           ?= docker buildx
 # default BUILDER, single node).
 CROSS_BUILDER_NAME ?=
 
-# Patches applied to the upstream tree, in order. The stage3 fix is an
-# upstream-bound bug fix; tag.patch / ttl.sh.patch are siderolabs-specific.
+# Patches applied to the upstream tree, in order. All earlier bug fixes are
+# upstream; tag.patch is siderolabs-specific.
 PATCHES := \
-	0001-fix-make-stage3-cross-compile-for-linux-arm64-again.patch \
-	0002-fix-core-llvm-rm-nsan-on-arm64.patch \
-	tag.patch \
-	ttl.sh.patch
+	tag.patch
 
 # Bootstrap stages (seed the toolchain, amd64-only).
 BOOTSTRAP := stage0 stage1 stage2 stage3
@@ -77,7 +76,7 @@ $(MAKE) -C $(STAGEX_DIR) $(1) \
 	PROGRESS="$(PROGRESS)" \
 	PLATFORM="$(PLATFORM)" \
 	REGISTRY_USERNAME="$(REGISTRY_USERNAME)" \
-	TAG="$(STAGEX_REF)"
+	TAG="$(STAGEX_TAG)"
 endef
 
 .PHONY: all
