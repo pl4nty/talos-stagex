@@ -1,0 +1,15 @@
+From: Tom Plant <tom@tplant.com.au>
+Subject: [PATCH] fix: core-llvm21: add the riscv64 arch mapping
+
+--- a/packages/core/llvm21/Containerfile
++++ b/packages/core/llvm21/Containerfile
+@@ -42,6 +42,9 @@
+ 	[[ "$TARGETARCH" == "arm64" ]] \
+ 		&& ARCH="aarch64" \
+ 		&& LLVM_TARGET_ARCH="AArch64"
++	[[ "$TARGETARCH" == "riscv64" ]] \
++		&& ARCH="riscv64" \
++		&& LLVM_TARGET_ARCH="riscv64"
+ 	export ARCH
+ 	export MAKEFLAGS="-j$(nproc)"
+ 	export BUILD=${ARCH}-unknown-linux-musl

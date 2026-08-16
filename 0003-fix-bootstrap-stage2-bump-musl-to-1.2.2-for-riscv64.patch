@@ -1,0 +1,22 @@
+From: Tom Plant <tom@tplant.com.au>
+Subject: [PATCH] fix: bootstrap-stage2: bump musl to 1.2.2 for riscv64
+
+musl 1.1.24's riscv64 port tags ucontext_t as `struct ucontext_t`, while
+<ucontext.h> prototypes makecontext() against `struct __ucontext`, so
+stage3's libucontext fails. Fixed upstream in 1.2.2 [1].
+
+[1] https://www.openwall.com/lists/musl/2020/12/05/2
+
+--- a/packages/bootstrap/stage2/package.toml
++++ b/packages/bootstrap/stage2/package.toml
+@@ -6,8 +6,8 @@
+ platforms = ["linux/386"]
+ 
+ [sources.musl]
+-version = "1.1.24"
+-hash = "1370c9a812b2cf2a7d92802510cca0058cc37e66a7bedd70051f0a34015022a3"
++version = "1.2.2"
++hash = "9b969322012d796dc23dda27a35866034fa67d8fb67e0e2c45c913c3d43219dd"
+ file = "musl-{version}.tar.gz"
+ mirrors = ["https://musl.libc.org/releases/{file}"]
+ 

@@ -1,0 +1,19 @@
+From: Tom Plant <tom@tplant.com.au>
+Subject: [PATCH] fix: bootstrap-stage3: disable the cmake debugger on riscv64
+
+cmake's bundled cppdap uses 1-byte atomics, which riscv64 cannot inline, so
+gcc emits calls to __atomic_exchange_1 in libatomic. stage3 never builds
+libatomic, so linking cmake fails.
+
+--- a/packages/bootstrap/stage3/Containerfile
++++ b/packages/bootstrap/stage3/Containerfile
+@@ -255,7 +255,8 @@
+ 	../configure \
+ 		--prefix=/usr \
+ 		-- \
+-		-DCMAKE_USE_OPENSSL=OFF
++		-DCMAKE_USE_OPENSSL=OFF \
++		-DCMake_ENABLE_DEBUGGER=OFF
+ 	make
+ 	make DESTDIR=/rootfs install
+ 	rm -rf /cmake-*

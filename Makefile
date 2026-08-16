@@ -36,13 +36,18 @@ BUILDER           ?= docker buildx
 # default BUILDER, single node).
 CROSS_BUILDER_NAME ?=
 
-# Patches applied to the upstream tree, in order. The stage3 fix is an
-# upstream-bound bug fix; tag.patch / ttl.sh.patch are siderolabs-specific.
+# Patches applied to the upstream tree, in order. The stage3 and stage2 fixes
+# are upstream-bound bug fixes; tag.patch / ttl.sh.patch are siderolabs-specific.
 PATCHES := \
 	0001-fix-make-stage3-cross-compile-for-linux-arm64-again.patch \
 	0002-fix-core-llvm-rm-nsan-on-arm64.patch \
-	tag.patch \
-	ttl.sh.patch
+	0003-fix-bootstrap-stage2-bump-musl-to-1.2.2-for-riscv64.patch \
+	0004-fix-bootstrap-stage3-disable-cmake-debugger-riscv64.patch \
+	0005-fix-core-llvm-llvm-target-arch-riscv64.patch \
+	0006-fix-core-openssl-riscv64-configure-target.patch \
+	0007-fix-core-gmp-riscv64-compiler-list.patch \
+	0008-fix-core-llvm21-riscv64-arch-mapping.patch \
+	tag.patch
 
 # Bootstrap stages (seed the toolchain, amd64-only).
 BOOTSTRAP := stage0 stage1 stage2 stage3

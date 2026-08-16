@@ -1,0 +1,17 @@
+From: Tom Plant <tom@tplant.com.au>
+Subject: [PATCH] fix: core-gmp: add cc to the riscv64 compiler list
+
+gmp lists candidate compilers per host CPU. Every arch offers "cc" alongside
+"gcc", except riscv64, which offers "gcc" alone, and core-llvm installs clang
+as cc with no gcc.
+
+--- a/packages/core/gmp/Containerfile
++++ b/packages/core/gmp/Containerfile
+@@ -17,6 +17,7 @@
+ WORKDIR /gmp-${VERSION}
+ RUN --network=none <<EOF
+ 	set -eux
++	sed -i '/^  riscv64-\*-\*)/,/^    ;;/s|cclist="gcc"|cclist="gcc cc"\n    cc_cflags="-O2"|' configure
+ 	./configure \
+ 		--prefix=/usr \
+ 		--build=$(uname -m)-linux-musl

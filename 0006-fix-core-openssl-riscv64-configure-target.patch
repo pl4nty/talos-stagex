@@ -1,0 +1,27 @@
+From: Tom Plant <tom@tplant.com.au>
+Subject: [PATCH] fix: core-openssl: use the linux64-riscv64 Configure target
+
+OpenSSL's targets are not uniformly named.
+
+--- a/packages/core/openssl/Containerfile
++++ b/packages/core/openssl/Containerfile
+@@ -15,6 +15,10 @@
+ RUN --network=none <<-EOF
+ 	set -eux
+ 	ARCH="$(uname -m)"
++	case "${ARCH}" in
++		riscv64) TARGET="linux64-riscv64" ;;
++		*) TARGET="linux-${ARCH}" ;;
++	esac
+ 	perl ./Configure \
+ 		--prefix=/usr \
+ 		--libdir=lib \
+@@ -32,7 +36,7 @@
+ 		no-ssl3 \
+ 		no-seed \
+ 		no-weak-ssl-ciphers \
+-		linux-${ARCH}
++		"${TARGET}"
+ 	make -j "$(nproc)"
+ 	make DESTDIR=/rootfs install
+ 	install -vDm644 -t /rootfs/usr/share/licenses/openssl LICENSE.txt
