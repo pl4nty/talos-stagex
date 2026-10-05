@@ -1,11 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Plant <tom@tplant.com.au>
-Subject: [PATCH] fix: core-openssl: use the linux64-riscv64 Configure target
+Date: Sat, 5 Sep 2026 08:28:26 +0000
+Subject: [PATCH] fix(openssl): Use the linux64-riscv64 Configure target
 
 OpenSSL's targets are not uniformly named.
 
+Signed-off-by: Tom Plant <tom@tplant.com.au>
+---
+ packages/core/openssl/Containerfile | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/packages/core/openssl/Containerfile b/packages/core/openssl/Containerfile
+index 171be870d..3739bd71b 100644
 --- a/packages/core/openssl/Containerfile
 +++ b/packages/core/openssl/Containerfile
-@@ -15,6 +15,10 @@
+@@ -15,6 +15,10 @@ ENV CC='clang -fPIE -pie'
  RUN --network=none <<-EOF
  	set -eux
  	ARCH="$(uname -m)"
@@ -16,7 +25,7 @@ OpenSSL's targets are not uniformly named.
  	perl ./Configure \
  		--prefix=/usr \
  		--libdir=lib \
-@@ -32,7 +36,7 @@
+@@ -32,7 +36,7 @@ RUN --network=none <<-EOF
  		no-ssl3 \
  		no-seed \
  		no-weak-ssl-ciphers \

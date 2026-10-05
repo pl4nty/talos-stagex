@@ -1,13 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Plant <tom@tplant.com.au>
-Subject: [PATCH] fix: core-llvm: set LLVM_TARGET_ARCH to the machine arch
+Date: Sat, 5 Sep 2026 08:28:26 +0000
+Subject: [PATCH] fix(llvm): Set LLVM_TARGET_ARCH to the machine arch
 
 LLVM_TARGET_ARCH feeds LLVM_NATIVE_ARCH, which config-ix.cmake lowercases and
 matches against a fixed table. That table has riscv32 and riscv64 but no bare
 riscv, so passing the LLVM target name "RISCV" fails.
 
+Signed-off-by: Tom Plant <tom@tplant.com.au>
+---
+ packages/core/llvm/Containerfile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/packages/core/llvm/Containerfile b/packages/core/llvm/Containerfile
+index 845a6a532..1c945006f 100644
 --- a/packages/core/llvm/Containerfile
 +++ b/packages/core/llvm/Containerfile
-@@ -62,7 +62,7 @@
+@@ -62,7 +62,7 @@ RUN --network=none <<-EOF
  
  	# Configure for `musl`
  	cmake_cache_set LLVM_HOST_TRIPLE "${ARCH}-linux-musl"
