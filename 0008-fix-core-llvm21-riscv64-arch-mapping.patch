@@ -1,9 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Plant <tom@tplant.com.au>
-Subject: [PATCH] fix: core-llvm21: add the riscv64 arch mapping
+Date: Sat, 5 Sep 2026 08:28:35 +0000
+Subject: [PATCH] fix(llvm21): Add the riscv64 arch mapping
 
+Signed-off-by: Tom Plant <tom@tplant.com.au>
+---
+ packages/core/llvm21/Containerfile | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/packages/core/llvm21/Containerfile b/packages/core/llvm21/Containerfile
+index 71e027472..3144b039e 100644
 --- a/packages/core/llvm21/Containerfile
 +++ b/packages/core/llvm21/Containerfile
-@@ -42,6 +42,9 @@
+@@ -42,6 +42,9 @@ COPY <<-'EOF' /etc/profile
  	[[ "$TARGETARCH" == "arm64" ]] \
  		&& ARCH="aarch64" \
  		&& LLVM_TARGET_ARCH="AArch64"
