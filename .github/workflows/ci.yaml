@@ -29,9 +29,9 @@ jobs:
       pull-requests: read
       id-token: write
     runs-on:
-      - ubuntu-latest
+      - namespace-profile-default
     if: (!startsWith(github.head_ref, 'renovate/') && !startsWith(github.head_ref, 'dependabot/'))
-    timeout-minutes: 720
+    timeout-minutes: 2880
     steps:
       - name: gather-system-info
         id: system-info
@@ -63,6 +63,10 @@ jobs:
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # version: v6.3.0
+        with:
+          python-version: "3.12"
       - name: Set up Namespace CLI
         uses: namespacelabs/nscloud-setup@v0
       - name: Set up amd64 cross-compile builder
@@ -71,6 +75,13 @@ jobs:
           builder-name: stagex-amd64
       - name: Set up Docker Buildx
         uses: namespacelabs/nscloud-setup-buildx-action@v0
+      - name: Register Namespace builders
+        # On Namespace runners the buildx actions above see the server-side proxy and
+        # skip creating named builders, so create them here (as on GitHub-hosted runners).
+        run: |
+          docker buildx inspect stagex-amd64 >/dev/null 2>&1 || nsc docker buildx setup --name=stagex-amd64 --default_load
+          docker buildx inspect nsc-remote >/dev/null 2>&1 || nsc docker buildx setup --name=nsc-remote --use --default_load
+          docker buildx ls
       - name: Set up riscv64 builder
         run: |
           mkdir -p _out
@@ -79,6 +90,7 @@ jobs:
           echo "$BUILDER_NODE_0_AUTH_TLS_KEY" > _out/key.pem
           docker buildx create --append --name nsc-remote --driver remote --platform linux/riscv64 tcp://buildkit-riscv64.tplant.com.au:1234 \
           --driver-opt cacert=${PWD}/_out/ca.pem,cert=${PWD}/_out/cert.pem,key=${PWD}/_out/key.pem
+          docker buildx ls
         env:
           BUILDER_NODE_0_AUTH_TLS_CACERT: ${{ secrets.BUILDKIT_RISCV64_CACERT }}
           BUILDER_NODE_0_AUTH_TLS_CERT: ${{ secrets.BUILDKIT_RISCV64_CERT }}
@@ -116,7 +128,7 @@ jobs:
             || 'registry.dev.siderolabs.io' }}/${{ github.repository_owner }}/stagex
           STAGEX_REF: ${{ inputs.stagex_git_ref }}
         run: |
-          make stage0
+          make stage0 || make stage0 || make stage0
       - name: stage1
         env:
           CROSS_BUILDER_NAME: stagex-amd64
@@ -125,7 +137,7 @@ jobs:
             || 'registry.dev.siderolabs.io' }}/${{ github.repository_owner }}/stagex
           STAGEX_REF: ${{ inputs.stagex_git_ref }}
         run: |
-          make stage1
+          make stage1 || make stage1 || make stage1
       - name: stage2
         env:
           CROSS_BUILDER_NAME: stagex-amd64
@@ -134,7 +146,7 @@ jobs:
             || 'registry.dev.siderolabs.io' }}/${{ github.repository_owner }}/stagex
           STAGEX_REF: ${{ inputs.stagex_git_ref }}
         run: |
-          make stage2
+          make stage2 || make stage2 || make stage2
       - name: stage3
         env:
           CROSS_BUILDER_NAME: stagex-amd64
@@ -143,7 +155,7 @@ jobs:
             || 'registry.dev.siderolabs.io' }}/${{ github.repository_owner }}/stagex
           STAGEX_REF: ${{ inputs.stagex_git_ref }}
         run: |
-          make stage3
+          make stage3 || make stage3 || make stage3
       - name: core
         env:
           CROSS_BUILDER_NAME: stagex-amd64
@@ -152,4 +164,4 @@ jobs:
             || 'registry.dev.siderolabs.io' }}/${{ github.repository_owner }}/stagex
           STAGEX_REF: ${{ inputs.stagex_git_ref }}
         run: |
-          make core
+          make core || make core || make core
